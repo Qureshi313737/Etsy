@@ -103,3 +103,55 @@ def run_pinterest_flow(app_id: str, app_secret: str, redirect_uri: str = DEFAULT
     webbrowser.open(url)
     code = _capture_code(redirect_uri, state)
     return pinterest_client.PinterestClient.exchange_code(app_id, app_secret, code, redirect_uri)
+
+
+# ---------------------------------------------------------------------------
+# Phone-friendly flow (no computer): run as two GitHub Actions steps.
+#   start  -> saves PKCE verifier + state in the encrypted token store, prints the login URL
+#   finish -> takes the URL the browser was redirected to, exchanges the code, saves tokens
+# ---------------------------------------------------------------------------
+def remote_start(service: str, cfg, store) -> str:
+    if not store.persistent:
+        raise RuntimeError("TOKEN_ENCRYPTION_KEY secret missing - add it first (any long password).")
+    redirect = cfg.secret("ETSY_REDIRECT_URI" if service == "etsy" else "PINTEREST_REDIRECT_URI") or DEFAULT_REDIRECT
+    state = secrets.token_urlsafe(16)
+    if service == "etsy":
+        if not cfg.has("ETSY_API_KEY"):
+            raise RuntimeError("ETSY_API_KEY secret missing.")
+        verifier, challenge = pkce_pair()
+        url = etsy_auth_url(cfg.secret("ETSY_API_KEY"), redirect, state, challenge)
+    else:
+        if not cfg.has("PINTEREST_APP_ID", "PINTEREST_APP_SECRET"):
+            raise RuntimeError("PINTEREST_APP_ID / PINTEREST_APP_SECRET secrets missing.")
+        verifier = ""
+        url = pinterest_auth_url(cfg.secret("PINTEREST_APP_ID"), redirect, state)
+    store.set(f"pending_{service}", {"state": state, "verifier": verifier, "redirect": redirect})
+    return url
+
+
+def remote_finish(service: str, cfg, store, redirected_url: str) -> dict:
+    import time
+
+    pending = store.get(f"pending_{service}")
+    if not pending:
+        raise RuntimeError("Pehle 'start' step chalao.")
+    qs = {k: v[0] for k, v in urllib.parse.parse_qs(urllib.parse.urlparse(redirected_url.strip()).query).items()}
+    if "error" in qs:
+        raise RuntimeError(f"Login cancelled/denied: {qs}")
+    if qs.get("state") != pending["state"]:
+        raise RuntimeError("URL purana hai ya galat hai (state mismatch). 'start' dobara chalao.")
+    if "code" not in qs:
+        raise RuntimeError("URL mein ?code= nahi mila - poora address bar wala URL copy karo.")
+    if service == "etsy":
+        tok = etsy_client.EtsyClient.exchange_code(cfg.secret("ETSY_API_KEY"), qs["code"], pending["verifier"],
+                                                   pending["redirect"])
+        expires = int(tok.get("expires_in", 3600)) - 120
+    else:
+        tok = pinterest_client.PinterestClient.exchange_code(cfg.secret("PINTEREST_APP_ID"),
+                                                             cfg.secret("PINTEREST_APP_SECRET"), qs["code"],
+                                                             pending["redirect"])
+        expires = int(tok.get("expires_in", 2592000)) - 3600
+    store.set(service, {"access_token": tok["access_token"], "refresh_token": tok.get("refresh_token"),
+                        "expires_at": time.time() + expires})
+    store.set(f"pending_{service}", {"state": "used", "verifier": ""})
+    return tok

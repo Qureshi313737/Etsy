@@ -167,3 +167,34 @@ def test_update_listing_falls_back_to_json_when_tags_not_stored(tmp_path):
     out = c.update_listing(1, {"title": "T", "tags": ["a", "b"]})
     assert out["tags"] == ["a", "b"] and sent[0]["data"]["tags"] == "a,b" and sent[1]["json"] == {"tags": ["a", "b"]}
     assert sent[0]["headers"]["x-api-key"] == "KEY:SECRET"
+
+
+def test_passphrase_works_as_encryption_key(tmp_path):
+    s = TokenStore(tmp_path / "t.enc", "my long phone password 2026!")
+    s.set("etsy", {"refresh_token": "r"})
+    assert TokenStore(tmp_path / "t.enc", "my long phone password 2026!").get("etsy")["refresh_token"] == "r"
+    assert TokenStore(tmp_path / "t.enc", "wrong password").get("etsy") == {}
+
+
+def test_phone_connect_flow_etsy(tmp_path, monkeypatch):
+    from etsy_engine import oauth
+    from etsy_engine.config import load_config
+
+    monkeypatch.setenv("ETSY_API_KEY", "KEY")
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", "phone passphrase long enough")
+    cfg = load_config(root=tmp_path)
+    store = TokenStore(cfg.path("token_file"), cfg.secret("TOKEN_ENCRYPTION_KEY"))
+    url = oauth.remote_start("etsy", cfg, store)
+    assert "code_challenge=" in url and "client_id=KEY" in url
+    state = store.get("pending_etsy")["state"]
+    seen = {}
+
+    def fake_exchange(api_key, code, verifier, redirect):
+        seen.update(code=code, verifier=verifier)
+        return {"access_token": "1.a", "refresh_token": "ref", "expires_in": 3600}
+
+    monkeypatch.setattr(oauth.etsy_client.EtsyClient, "exchange_code", staticmethod(fake_exchange))
+    reopened = TokenStore(cfg.path("token_file"), cfg.secret("TOKEN_ENCRYPTION_KEY"))
+    oauth.remote_finish("etsy", cfg, reopened, f"http://localhost:3003/callback?code=C1&state={state}")
+    assert seen["code"] == "C1" and seen["verifier"]
+    assert TokenStore(cfg.path("token_file"), "phone passphrase long enough").get("etsy")["refresh_token"] == "ref"

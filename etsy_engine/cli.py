@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 
 from .config import load_config
@@ -25,6 +26,40 @@ def _print_table(rows: list[dict], cols: list[str]) -> None:
     print("  ".join(c.ljust(widths[c]) for c in cols))
     for r in rows:
         print("  ".join(str(r.get(c, ""))[:50].ljust(widths[c]) for c in cols))
+
+
+def say(text: str) -> None:
+    """Print, and also show it on the GitHub Actions run page (easy to read on a phone)."""
+    print(text)
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a", encoding="utf-8") as fh:
+            fh.write(text + "\n")
+
+
+def cmd_connect(cfg, service: str, step: str, url: str) -> int:
+    from .oauth import remote_finish, remote_start
+    from .secrets_store import TokenStore
+
+    store = TokenStore(cfg.path("token_file"), cfg.secret("TOKEN_ENCRYPTION_KEY"))
+    try:
+        if step == "start":
+            login = remote_start(service, cfg, store)
+            say(f"## {service.title()} login - step 1 done ✅\n\n"
+                f"1. Neeche wala link kholo aur **Allow** dabao:\n\n[👉 {service.title()} login link]({login})\n\n"
+                f"```\n{login}\n```\n"
+                "2. Browser 'site can't be reached' dikhayega - **yeh normal hai**. Address bar ka poora URL copy karo "
+                "(localhost:3003/callback?code=... wala).\n"
+                "3. Actions mein **Setup / Connect** workflow dobara chalao: step = `finish`, aur URL paste karo. "
+                "Jaldi karna - code kuch hi minute valid rehta hai.")
+        else:
+            remote_finish(service, cfg, store, url)
+            say(f"## ✅ {service.title()} connected!\nToken encrypted form mein `data/tokens.enc` mein save ho gaya. "
+                "Ab koi refresh-token secret daalne ki zaroorat nahi.")
+    except Exception as exc:
+        say(f"## ❌ {service.title()} connect failed\n\n{exc}")
+        return 1
+    return 0
 
 
 def cmd_check(cfg) -> int:
@@ -38,15 +73,22 @@ def cmd_check(cfg) -> int:
         ("Telegram report (optional, free)", ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]),
         ("Email report (optional)", ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "REPORT_EMAIL_TO"]),
     ]
-    for title, keys in groups:
-        print(f"\n{title}")
-        for k in keys:
-            print(f"  {'✅' if cfg.secret(k) else '❌'} {k}")
     from .pinterest_campaign import resolve_channel
+    from .secrets_store import TokenStore
 
-    print(f"\nPinterest channel in use: {resolve_channel(cfg)}")
-    print(f"Site base_url: {cfg.get('site.base_url') or '(not set)'}")
-    print("\nSETUP_GUIDE.md mein har key ka step-by-step tarika hai.")
+    store = TokenStore(cfg.path("token_file"), cfg.secret("TOKEN_ENCRYPTION_KEY"))
+    lines = ["## Setup check"]
+    for title, keys in groups:
+        lines.append(f"\n**{title}**\n")
+        for k in keys:
+            ok = bool(cfg.secret(k))
+            if not ok and k in ("ETSY_REFRESH_TOKEN", "PINTEREST_REFRESH_TOKEN"):
+                ok = bool(store.get(k.split("_")[0].lower()).get("refresh_token"))
+                k += " (ya 'connect' se saved token)"
+            lines.append(f"- {'✅' if ok else '❌'} {k}")
+    lines.append(f"\nPinterest channel: **{resolve_channel(cfg)}**  ")
+    lines.append(f"Site base_url: {cfg.get('site.base_url') or '(not set)'}")
+    say("\n".join(lines))
     return 0
 
 
@@ -108,6 +150,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("gen-key")
     p_auth = sub.add_parser("auth")
     p_auth.add_argument("service", choices=["etsy", "pinterest"])
+    p_conn = sub.add_parser("connect", help="phone-friendly login (via GitHub Actions)")
+    p_conn.add_argument("service", choices=["etsy", "pinterest"])
+    p_conn.add_argument("step", choices=["start", "finish"])
+    p_conn.add_argument("--url", default="", help="redirected URL (finish step)")
     p_daily = sub.add_parser("daily")
     p_daily.add_argument("--no-notify", action="store_true")
     p_pub = sub.add_parser("publish")
@@ -135,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_check(cfg)
     if args.cmd == "auth":
         return cmd_auth(cfg, args.service)
+    if args.cmd == "connect":
+        return cmd_connect(cfg, args.service, args.step, args.url)
     if args.cmd == "analyze":
         return cmd_analyze(cfg)
     if args.cmd in ("demo", "daily"):

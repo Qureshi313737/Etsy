@@ -28,12 +28,20 @@ from .text_utils import keywords, slugify
 log = logging.getLogger(__name__)
 
 
+def _stored_pinterest(cfg: Config) -> bool:
+    from .secrets_store import TokenStore
+
+    if not cfg.secret("TOKEN_ENCRYPTION_KEY"):
+        return False
+    return bool(TokenStore(cfg.path("token_file"), cfg.secret("TOKEN_ENCRYPTION_KEY")).get("pinterest").get("refresh_token"))
+
+
 def resolve_channel(cfg: Config) -> str:
     channel = str(cfg.get("pinterest.channel", "auto")).lower()
     if channel != "auto":
         return channel
     if cfg.has("PINTEREST_APP_ID", "PINTEREST_APP_SECRET") and (
-            cfg.secret("PINTEREST_REFRESH_TOKEN") or cfg.secret("PINTEREST_ACCESS_TOKEN")):
+            cfg.secret("PINTEREST_REFRESH_TOKEN") or cfg.secret("PINTEREST_ACCESS_TOKEN") or _stored_pinterest(cfg)):
         return "api"
     if cfg.get("site.enabled") and cfg.get("site.base_url"):
         return "rss"

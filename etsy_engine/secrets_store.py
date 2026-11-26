@@ -14,6 +14,20 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 
+def fernet_key(secret: str) -> bytes:
+    """Accept a real Fernet key, or any long passphrase (so it can be typed on a phone)."""
+    import base64
+    import hashlib
+
+    from cryptography.fernet import Fernet
+
+    try:
+        Fernet(secret.encode())
+        return secret.encode()
+    except (ValueError, TypeError):
+        return base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest())
+
+
 def generate_key() -> str:
     from cryptography.fernet import Fernet
 
@@ -29,7 +43,7 @@ class TokenStore:
         if self.key:
             from cryptography.fernet import Fernet
 
-            self._fernet = Fernet(self.key.encode())
+            self._fernet = Fernet(fernet_key(self.key))
         self._load()
 
     @property

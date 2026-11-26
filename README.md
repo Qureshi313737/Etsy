@@ -5,7 +5,7 @@ Every day it finds your **weakest product**, studies the live market, fixes its 
 promotes it on **Pinterest** with auto-designed pins, learns what works, and sends you a report.
 
 **Cost: ₹0 / $0** - runs on GitHub Actions (free minutes), GitHub Pages, free API tiers.
-👉 **Setup (Hinglish, step-by-step): [SETUP_GUIDE.md](SETUP_GUIDE.md)**
+👉 **Sirf phone hai? [MOBILE_SETUP.md](MOBILE_SETUP.md)** · Computer se setup: [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
 ```bash
 pip install -r requirements.txt
