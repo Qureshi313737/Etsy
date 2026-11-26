@@ -1,0 +1,69 @@
+# Etsy Growth Engine - settings (no secrets here; secrets go in GitHub Secrets / .env)
+
+shop:
+  name: "My Etsy Shop"          # apni shop ka naam
+  currency_symbol: "$"
+  brand_color: "#F1641E"        # pins aur site ka accent colour
+  cta_text: "Shop on Etsy"      # pin par button text
+
+analysis:
+  window_days: 30               # performance kitne din ka dekhna hai
+  short_window_days: 7          # trend ke liye
+  focus_count: 1                # roz kitne weak products par full campaign chalana hai
+  focus_cooldown_days: 3        # ek product ko dobara focus karne se pehle kitne din ruke
+  min_listing_age_days: 0       # bilkul naye listings ko chhodna ho to 7-14 karo
+  weights:                      # "weak" score ka formula
+    views: 0.35
+    sales: 0.30
+    conversion: 0.15
+    favorites: 0.10
+    quality: 0.10
+
+market:
+  enabled: true
+  competitors_per_keyword: 100
+  keywords_per_listing: 3
+  shop_scan_every_days: 7       # poori shop ka market pulse har hafte
+
+seo:
+  auto_apply: false             # true = naya title/tags khud Etsy par lag jayega (rollback command available)
+  apply_title: true
+  apply_tags: true
+  apply_description_intro: false
+  min_days_between_changes: 30  # ek listing ko baar baar mat chhedo - Etsy ko re-rank karne do
+
+llm:
+  providers: [gemini, groq, anthropic]   # jo key set hogi wahi use hogi; koi nahi to rule-based
+  gemini_model: gemini-flash-latest
+  groq_model: llama-3.3-70b-versatile
+  anthropic_model: claude-opus-5-5       # paid; sasta chahiye to claude-haiku-5-5
+  temperature: 0.7
+
+pinterest:
+  channel: auto                 # auto | api | rss | csv | off
+  pins_per_day: 10              # 5-15 safe hai; zyada spam lag sakta hai
+  focus_share: 0.5              # aadhe pins weak product ke liye, baaki rotation
+  publish_runs_per_day: 5       # API channel: pins din bhar mein itne slots mein jayenge
+  min_days_between_same_listing: 2
+  default_board: "Etsy Finds"
+  board_rules:                  # product ke keywords se board choose hota hai
+    - keywords: [necklace, earrings, bracelet, ring, jewelry]
+      board: "Handmade Jewelry Gifts"
+    - keywords: [wedding, bridal, bridesmaid]
+      board: "Wedding Ideas"
+  utm_campaign: etsy_engine
+  use_sandbox: false
+  analytics_lookback_days: 30
+
+site:
+  enabled: true
+  base_url: ""                  # e.g. https://YOUR-GITHUB-USERNAME.github.io/etsy-pins
+  title: ""
+  link_target: landing          # RSS pins: landing page (safe) ya seedha etsy
+  pinterest_verify: ""          # Pinterest "claim website" ka meta tag content
+  max_items_in_feed: 50
+  keep_pin_images: 300
+
+notify:
+  telegram: true
+  email: false

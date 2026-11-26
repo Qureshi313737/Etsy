@@ -1,0 +1,7 @@
+requests>=2.31
+PyYAML>=6.0
+Pillow>=10.1
+cryptography>=42.0
+python-dotenv>=1.0
+# Optional: only if you add a paid Claude key (llm.providers: anthropic)
+# anthropic>=1.0

@@ -1,0 +1,76 @@
+name: Daily growth run
+
+on:
+  schedule:
+    - cron: "17 2 * * *"   # roz 02:17 UTC (07:47 IST) - apne hisaab se badlo
+  workflow_dispatch: {}     # Actions tab se "Run workflow" button
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etsy-engine-state   # daily + publish kabhi ek saath DB nahi likhenge
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Checkout pins site (for Pinterest RSS / bulk CSV)
+        if: ${{ vars.SITE_REPO != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.SITE_REPO }}
+          token: ${{ secrets.SITE_DEPLOY_TOKEN }}
+          path: site
+
+      - name: Daily run
+        env:
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          ETSY_SHARED_SECRET: ${{ secrets.ETSY_SHARED_SECRET }}
+          ETSY_REFRESH_TOKEN: ${{ secrets.ETSY_REFRESH_TOKEN }}
+          ETSY_SHOP_ID: ${{ secrets.ETSY_SHOP_ID }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          PINTEREST_APP_ID: ${{ secrets.PINTEREST_APP_ID }}
+          PINTEREST_APP_SECRET: ${{ secrets.PINTEREST_APP_SECRET }}
+          PINTEREST_REFRESH_TOKEN: ${{ secrets.PINTEREST_REFRESH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
+        run: python -m etsy_engine daily
+
+      - name: Save history, tokens and report
+        if: always()
+        run: |
+          git config user.name "etsy-engine-bot"
+          git config user.email "etsy-engine-bot@users.noreply.github.com"
+          git add data reports
+          git diff --cached --quiet || git commit -m "Daily run $(date -u +%F)"
+          git push
+
+      - name: Publish pins site
+        if: ${{ vars.SITE_REPO != '' }}
+        working-directory: site
+        run: |
+          git config user.name "etsy-engine-bot"
+          git config user.email "etsy-engine-bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Pins $(date -u +%F)"
+          git push
