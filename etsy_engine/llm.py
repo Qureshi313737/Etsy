@@ -71,8 +71,8 @@ class LLM:
             try:
                 return self._gemini_call(model, system, prompt, max_tokens)
             except ApiError as exc:
-                # 503 overloaded / 429 quota / 404 retired model -> try the next free model
-                if exc.status in (404, 429, 500, 503) and i < len(models) - 1:
+                # busy, quota, retired model or timeout -> try the next free model
+                if exc.status in (0, 404, 429, 500, 503) and i < len(models) - 1:  # 0 = timeout/network
                     log.info("Gemini model %s unavailable (%s), trying %s", model, exc.status, models[i + 1])
                     continue
                 raise
