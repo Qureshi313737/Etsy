@@ -126,7 +126,19 @@ def remote_start(service: str, cfg, store) -> str:
         verifier = ""
         url = pinterest_auth_url(cfg.secret("PINTEREST_APP_ID"), redirect, state)
     store.set(f"pending_{service}", {"state": state, "verifier": verifier, "redirect": redirect})
-    return url
+    return _unmaskable(url)
+
+
+def _unmaskable(url: str) -> str:
+    """GitHub hides secret values in logs as ***, which would break the client_id in the link.
+    client_id is a public OAuth identifier (always visible in the browser), so percent-encode
+    every character: browsers/servers decode it to the same value, but the log mask no longer matches."""
+    parts = urllib.parse.urlsplit(url)
+    pairs = urllib.parse.parse_qsl(parts.query)
+    query = "&".join(
+        f"{k}=" + ("".join(f"%{b:02X}" for b in v.encode()) if k == "client_id" else urllib.parse.quote_plus(v))
+        for k, v in pairs)
+    return urllib.parse.urlunsplit(parts._replace(query=query))
 
 
 def remote_finish(service: str, cfg, store, redirected_url: str) -> dict:

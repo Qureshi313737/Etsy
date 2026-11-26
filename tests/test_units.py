@@ -185,7 +185,7 @@ def test_phone_connect_flow_etsy(tmp_path, monkeypatch):
     cfg = load_config(root=tmp_path)
     store = TokenStore(cfg.path("token_file"), cfg.secret("TOKEN_ENCRYPTION_KEY"))
     url = oauth.remote_start("etsy", cfg, store)
-    assert "code_challenge=" in url and "client_id=KEY" in url
+    assert "code_challenge=" in url and "client_id=%4B%45%59" in url
     state = store.get("pending_etsy")["state"]
     seen = {}
 
@@ -198,3 +198,19 @@ def test_phone_connect_flow_etsy(tmp_path, monkeypatch):
     oauth.remote_finish("etsy", cfg, reopened, f"http://localhost:3003/callback?code=C1&state={state}")
     assert seen["code"] == "C1" and seen["verifier"]
     assert TokenStore(cfg.path("token_file"), "phone passphrase long enough").get("etsy")["refresh_token"] == "ref"
+
+
+def test_login_link_client_id_survives_log_masking(tmp_path, monkeypatch):
+    import urllib.parse
+
+    from etsy_engine.config import load_config
+    from etsy_engine.oauth import remote_start
+
+    monkeypatch.setenv("ETSY_API_KEY", "abc123key")
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", "a long phone friendly passphrase 123")
+    cfg = load_config(root=tmp_path)
+    store = TokenStore(tmp_path / "t.enc", cfg.secret("TOKEN_ENCRYPTION_KEY"))
+    url = remote_start("etsy", cfg, store)
+    assert "abc123key" not in url  # GitHub's *** mask can't hit it
+    qs = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
+    assert qs["client_id"] == "abc123key" and qs["code_challenge_method"] == "S256"
