@@ -48,6 +48,7 @@ DEFAULTS: dict[str, Any] = {
     "llm": {
         "providers": ["gemini", "groq", "anthropic"],
         "gemini_model": "gemini-flash-latest",
+        "gemini_fallback_models": ["gemini-flash-lite-latest"],
         "groq_model": "llama-3.3-70b-versatile",
         "anthropic_model": "claude-opus-5-5",
         "temperature": 0.7,

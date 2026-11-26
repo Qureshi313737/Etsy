@@ -214,3 +214,39 @@ def test_login_link_client_id_survives_log_masking(tmp_path, monkeypatch):
     assert "abc123key" not in url  # GitHub's *** mask can't hit it
     qs = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
     assert qs["client_id"] == "abc123key" and qs["code_challenge_method"] == "S256"
+
+
+def test_digital_listing_copy_has_no_shipping_or_handmade():
+    from etsy_engine.analysis import ListingMetrics
+    from etsy_engine.copywriter import is_digital
+
+    l = {"listing_id": 9, "title": "Real Estate Website Template | Animated Property Listings Site | HTML Template",
+         "tags": ["html template", "digital download", "website template"], "price": 49.0, "materials": [],
+         "description": ""}
+    assert is_digital(l)
+    pack = build_content_pack(None, l, ListingMetrics(listing=l, diagnosis="conversion"), None, 6,
+                              ["keyword", "gift", "question", "seasonal", "benefit", "price"], "$", date(2026, 12, 1))
+    text = (pack["seo"]["description_intro"] + " ".join(p["headline"] + p["description"] for p in pack["pins"])
+            + " ".join(pack["social"].values()) + " ".join(pack["conversion_tips"])).lower()
+    assert "ships" not in text and "handmade" not in text and "christmas gift" not in text
+    assert pack["primary_phrase"] == "real estate website template"
+    assert pack["seo"]["title"].startswith("Real Estate Website Template")
+
+
+def test_gemini_falls_back_to_lite_model_when_busy(cfg, monkeypatch):
+    from etsy_engine.http import ApiError
+    from etsy_engine.llm import LLM
+
+    monkeypatch.setitem(cfg.secrets, "GEMINI_API_KEY", "k")
+    llm = LLM(cfg)
+    tried = []
+
+    def fake_call(model, system, prompt, max_tokens):
+        tried.append(model)
+        if model == "gemini-flash-latest":
+            raise ApiError(503, "high demand")
+        return '{"ok": true}'
+
+    llm._gemini_call = fake_call
+    assert llm.generate_json("s", "p") == {"ok": True}
+    assert tried == ["gemini-flash-latest", "gemini-flash-lite-latest"]

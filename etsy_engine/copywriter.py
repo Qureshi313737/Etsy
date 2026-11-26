@@ -56,7 +56,24 @@ def _title_case(s: str) -> str:
     return " ".join(w if (i and w in small) else w[:1].upper() + w[1:] for i, w in enumerate(s.split()))
 
 
+DIGITAL_WORDS = {"template", "templates", "digital", "download", "downloadable", "printable", "printables",
+                 "html", "website", "svg", "png", "pdf", "canva", "app", "font", "fonts", "ebook", "planner",
+                 "spreadsheet", "notion", "wordpress", "shopify", "figma", "preset", "presets", "clipart",
+                 "procreate", "mockup", "ui", "kit", "code", "theme", "plugin", "editable"}
+
+
+def is_digital(listing: dict) -> bool:
+    """Digital downloads need different copy (instant download, no shipping, no 'handmade')."""
+    text = set(keywords(listing.get("title", "") + " " + " ".join(listing.get("tags", []))))
+    return len(text & DIGITAL_WORDS) >= 2 or bool({"digital", "download", "printable"} & text)
+
+
 def primary_phrase(listing: dict, insight: dict | None) -> str:
+    # the seller's own leading phrase is the most reliable description of the product
+    phrases = title_phrases(listing.get("title", ""))
+    own_lead = keywords(phrases[0])[:4] if phrases else []
+    if len(own_lead) >= 2:
+        return " ".join(own_lead)
     own_words = set(keywords(listing.get("title", "")) + keywords(" ".join(listing.get("tags", []))))
     for phrase, _ in (insight or {}).get("top_phrases", []):
         if len(set(phrase.split()) & own_words) >= 2 or (len(phrase.split()) == 2 and set(phrase.split()) <= own_words):
@@ -107,6 +124,10 @@ def rule_title(listing: dict, insight: dict | None, tags: list[str]) -> str:
 
 def rule_description_intro(listing: dict, primary: str, season: dict) -> str:
     name = short_name(listing.get("title", ""))
+    if is_digital(listing):
+        return (f"Looking for a {primary.lower()}? This {name} is an instant digital download - "
+                f"ready to use, easy to customise and fully yours after purchase. "
+                f"No shipping and no waiting: get the files right after checkout.")
     mats = listing.get("materials") or []
     mat_txt = f" Made with {', '.join(mats[:3])}." if mats else ""
     return (f"Searching for the perfect {primary.lower()}? Meet our {name.lower()}: a thoughtful "
@@ -119,7 +140,20 @@ def rule_pins(listing: dict, primary: str, season: dict, n: int, symbol: str, st
     price = float(listing.get("price") or 0)
     nice_price = math.ceil(price / 5) * 5 if price else 0
     kw = _title_case(primary)
-    headlines = {
+    if is_digital(listing):
+        headlines = {
+            "keyword": (kw, "Instant Download"),
+            "gift": ("Launch Faster With This Template", name),
+            "question": (f"Need a {kw}?", "Ready to use today"),
+            "seasonal": (f"{season['season']} Launch Ready", name),
+            "benefit": ("Save Hours of Work", name),
+            "price": (f"Only {symbol}{price:.0f} - Instant Access" if price else "Instant Access", name),
+        }
+        hook = "instant digital download"
+    else:
+        headlines = {}
+        hook = season["hook"].lower()
+    headlines = headlines or {
         "keyword": (kw, name),
         "gift": (f"The Perfect {season['occasion']} Gift", name),
         "question": (f"Still Looking for the Perfect {kw}?", "You'll love this one"),
@@ -133,10 +167,10 @@ def rule_pins(listing: dict, primary: str, season: dict, n: int, symbol: str, st
         style = styles[i % len(styles)]
         h, sub = headlines.get(style, headlines["keyword"])
         if sub.lower() in h.lower() or h.lower() in sub.lower():
-            sub = season["hook"]
+            sub = "Instant Download" if is_digital(listing) else season["hook"]
         title = truncate(f"{kw} | {h}" if style != "keyword" else f"{kw} - {name}", 100)
         desc = truncate(
-            f"{h}. {name} - {season['hook'].lower()}. Perfect for anyone who loves "
+            f"{h}. {name} - {hook}. Perfect for anyone who loves "
             f"{', '.join(tags[:3]) or primary}. Tap to see all photos and details on Etsy.", 500)
         out.append({
             "style": style, "headline": truncate(h, 48), "subline": truncate(sub, 40),
@@ -149,6 +183,15 @@ def rule_pins(listing: dict, primary: str, season: dict, n: int, symbol: str, st
 def rule_social(listing: dict, primary: str, season: dict) -> dict:
     name = short_name(listing.get("title", ""))
     tags = [t.replace(" ", "") for t in listing.get("tags", [])[:6]]
+    if is_digital(listing):
+        hashtags = " ".join(f"#{t}" for t in tags) + " #etsy #digitaldownload #template #smallbusiness"
+        return {
+            "instagram": f"🚀 New: {name} - instant download, ready to customise. Link in bio! {hashtags}",
+            "facebook": f"Save hours of work: {name} is ready to use today. Instant download on Etsy 👉",
+            "reddit_title": f"I built a {primary.lower()} - would love feedback on the design",
+            "tiktok_hook": f"POV: you launch your site in an afternoon with this {primary.lower()} ⚡",
+            "hashtags": hashtags,
+        }
     hashtags = " ".join(f"#{t}" for t in tags) + " #etsy #etsyfinds #handmade #shopsmall"
     return {
         "instagram": f"{season['hook']} ✨ Meet our {name}. Link in bio to shop on Etsy! {hashtags}",
@@ -161,6 +204,16 @@ def rule_social(listing: dict, primary: str, season: dict) -> dict:
 
 def conversion_tips(m: ListingMetrics, insight: dict | None) -> list[str]:
     tips: list[str] = []
+    if is_digital(m.listing):
+        if m.diagnosis in (CONVERSION, APPEAL):
+            tips += [
+                "Pehli photo mein laptop/phone mockup par template dikhao - buyer ko turant samajh aaye kya mil raha hai.",
+                "Ek live demo link ya 15-sec screen-recording video add karo (animated templates ke liye bahut zaroori).",
+                "Description mein saaf likho: kya files milengi, kaise edit hoga, kaunse tools chahiye.",
+                "Etsy Marketing > Sales and discounts se 15-20% ka 3-day sale chalao.",
+            ]
+        tips += m.quality_issues[:4]
+        return tips
     if m.diagnosis == CONVERSION:
         tips += [
             "Pehli 3 photos mein product ka size/scale dikhao (haath mein ya room mein).",
@@ -201,6 +254,8 @@ def _llm_prompt(listing: dict, m: ListingMetrics, insight: dict | None, season: 
             "price_range": (insight or {}).get("price"),
         },
         "season": season,
+        "product_type": "digital download (no shipping, not handmade - do not mention shipping, "
+                        "gifts or handmade unless the listing says so)" if is_digital(listing) else "physical item",
     }
     return (
         "Data:\n" + json.dumps(data, ensure_ascii=False, indent=1) +

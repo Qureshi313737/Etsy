@@ -37,7 +37,7 @@ def extract_json(text: str) -> Any:
 class LLM:
     def __init__(self, cfg: Config):
         self.cfg = cfg
-        self.http = HttpClient(qps=1.0, timeout=float(cfg.get("llm.timeout_seconds", 60)), max_retries=2)
+        self.http = HttpClient(qps=1.0, timeout=float(cfg.get("llm.timeout_seconds", 60)), max_retries=1)
         self.providers = [p for p in cfg.get("llm.providers", []) if cfg.secret(PROVIDER_KEYS.get(p, "-"))]
         self.last_provider: str | None = None
         self.disabled: set[str] = set()
@@ -66,7 +66,19 @@ class LLM:
 
     # ---- providers -------------------------------------------------------------
     def _gemini(self, system: str, prompt: str, max_tokens: int) -> str:
-        model = self.cfg.get("llm.gemini_model")
+        models = [self.cfg.get("llm.gemini_model")] + list(self.cfg.get("llm.gemini_fallback_models", []) or [])
+        for i, model in enumerate(models):
+            try:
+                return self._gemini_call(model, system, prompt, max_tokens)
+            except ApiError as exc:
+                # 503 overloaded / 429 quota / 404 retired model -> try the next free model
+                if exc.status in (404, 429, 500, 503) and i < len(models) - 1:
+                    log.info("Gemini model %s unavailable (%s), trying %s", model, exc.status, models[i + 1])
+                    continue
+                raise
+        return ""
+
+    def _gemini_call(self, model: str, system: str, prompt: str, max_tokens: int) -> str:
         resp = self.http.request(
             "POST",
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
