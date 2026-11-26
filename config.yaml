@@ -1,7 +1,7 @@
 # Etsy Growth Engine - settings (no secrets here; secrets go in GitHub Secrets / .env)
 
 shop:
-  name: "My Etsy Shop"          # apni shop ka naam
+  name: "CodexaUS"          # apni shop ka naam
   currency_symbol: "$"
   brand_color: "#F1641E"        # pins aur site ka accent colour
   cta_text: "Shop on Etsy"      # pin par button text
