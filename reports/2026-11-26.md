@@ -37,7 +37,7 @@
 ### ✍️ SEO upgrade (suggestion - suggest-only mode (seo.auto_apply: false))
 **Old title:** Real Estate Website Template | Animated Property Listings Site | Mortgage Calculator | HTML Template
 
-**New title:** `Real Estate, Animated Property Listings Site, Mortgage Calculator, HTML Template, Realtor Website, Website Design, Property Listing`
+**New title:** `Real Estate Website Template, Animated Property Listings Site, Mortgage Calculator, Realtor Marketing, HTML Template, Website Design`
 
 **New 13 tags (copy-paste):**
 ```
@@ -46,19 +46,17 @@ property listings, website template, realtor website, website design, real estat
 Added: real estate website, real estate template, real estate agent, property listing, realtor marketing, canva website, property management, real estate, realtor template · Removed: real estate site, html template, digital download, real estate web, property template, mortgage calc, agent directory, no code website, responsive site
 
 **Description ki shuruaat (first 160 chars Google/Etsy dono padhte hain):**
-> Searching for the perfect real estate? Meet our real estate website template: a thoughtful Christmas gift and an everyday favourite. Add it to your cart today - it ships with care.
-- _Main search phrase 'real estate' title ke shuru mein rakha (competitors mein sabse common)._
+> Looking for a real estate website template? This Real Estate Website Template is an instant digital download - ready to use, easy to customise and fully yours after purchase. No shipping and no waiting: get the files right after checkout.
+- _Main search phrase 'real estate website template' title ke shuru mein rakha (competitors mein sabse common)._
 - _Competitors ke top-ranked listings ke proven long-tail tags add kiye._
 
 ### ✅ Aapke liye to-do (jo API se nahi ho sakta)
-- [ ] Naye title/tags apply karne ke baad 2-3 hafte ruko - Etsy ranking settle hone deti hai.
-- [ ] Listing ko 'renew' karna paid hai ($0.20) - sirf tab karo jab SEO update ke baad bhi views na aaye.
 
 ### 📣 Free social posts (copy-paste)
-- **Instagram:** Holiday gift guide pick ✨ Meet our Real Estate Website Template. Link in bio to shop on Etsy! #realestatesite #propertylistings #htmltemplate #websitetemplate #digitaldownload #realtorwebsite #etsy #etsyfinds #handmade #shopsmall
-- **Facebook:** New favourite alert: Real Estate Website Template. A thoughtful Christmas gift - shop it on Etsy 👉
-- **TikTok/Reels hook:** POV: you found the perfect Christmas gift (Real Estate Website Template) 🎁
-- **Reddit title** (sirf allowed subreddits mein, self-promo rules padh ke): Handmade real estate I've been working on - feedback welcome!
+- **Instagram:** 🚀 New: Real Estate Website Template - instant download, ready to customise. Link in bio! #realestatesite #propertylistings #htmltemplate #websitetemplate #digitaldownload #realtorwebsite #etsy #digitaldownload #template #smallbusiness
+- **Facebook:** Save hours of work: Real Estate Website Template is ready to use today. Instant download on Etsy 👉
+- **TikTok/Reels hook:** POV: you launch your site in an afternoon with this real estate website template ⚡
+- **Reddit title** (sirf allowed subreddits mein, self-promo rules padh ke): I built a real estate website template - would love feedback on the design
 _Copy source: rules_
 
 ## 📌 Pinterest (10 pins, channel: `csv`)
@@ -77,19 +75,6 @@ Pinterest > Create > 'Create Pins in bulk' mein aaj ki CSV upload karo (schedule
 | 8 | PULSE Fitness Studio Website Template… | banner | gift | Etsy Finds |  |
 | 9 | PropConnect Property Marketplace… | frame | benefit | Etsy Finds |  |
 | 10 | Animated Fitness Website Template |… | collage | seasonal | Etsy Finds |  |
-
-## 🌍 Weekly market pulse
-| Product keyword | Competitors | Median price | Aapka price position |
-|---|---|---|---|
-| real estate website template | 1,299 | $39.60 | 90% competitors se mehenga |
-| aurora dark | 2,932 | $35.00 | 98% competitors se mehenga |
-| interactive 3d heart anatomy | 2 | $39.99 | 100% competitors se mehenga |
-| pulse fitness studio website | 2 | $49.00 | 100% competitors se mehenga |
-| propconnect property marketplace website | 1 | $0.00 | - |
-| animated fitness website template | 11 | $39.00 | 100% competitors se mehenga |
-| animated | 273,621 | $12.90 | 92% competitors se mehenga |
-| interactive 3d eye anatomy | 3 | $45.50 | 100% competitors se mehenga |
-| fitforge fitness website template | 1 | $0.00 | - |
 
 ## 🔻 Sabse weak 5 products
 | Product | Score | Diagnosis | Views 30d | Sales 30d | Quality |
